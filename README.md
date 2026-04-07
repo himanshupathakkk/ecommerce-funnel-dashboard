@@ -96,6 +96,6 @@ This project demonstrates end-to-end data analysis:
 
 ## 📷 Dashboard Preview
 
-(Add your dashboard screenshot here)
+![Dashboard](images/dashboard.png)
 
 
