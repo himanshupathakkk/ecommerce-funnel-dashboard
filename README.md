@@ -94,6 +94,14 @@ This project demonstrates end-to-end data analysis:
 * Business storytelling
 
 
+## 📁 Sample Data
+
+Due to large dataset size (~13GB), a sampled dataset is provided for demonstration.
+
+The full dataset is available on Kaggle:
+[https://www.kaggle.com/datasets/mkechinov/ecommerce-behavior-data-from-multi-category-store]
+
+
 ## 📷 Dashboard Preview
 
 ![Dashboard](images/dashboard.png)
