@@ -1,4 +1,14 @@
--- Funnel Analysis
+-- =========================================================
+-- 📊 E-Commerce Funnel & Revenue Analysis Queries
+-- Description:
+-- This file contains SQL queries for funnel analysis, 
+-- user segmentation, revenue concentration, and cohort analysis.
+-- =========================================================
+
+
+-- =========================================================
+-- 📊 Funnel Analysis (User-Level Conversion)
+-- =========================================================
 
 WITH funnel AS (
     SELECT 
@@ -15,13 +25,17 @@ SELECT
     SUM(viewed) AS viewed_users,
     SUM(carted) AS cart_users,
     SUM(purchased) AS purchase_users,
-    ROUND(SUM(carted)*100.0 / SUM(viewed), 2) AS view_to_cart_rate,
-    ROUND(SUM(purchased)*100.0 / SUM(carted), 2) AS cart_to_purchase_rate
+
+    ROUND(SUM(carted) * 100.0 / NULLIF(SUM(viewed), 0), 2) AS view_to_cart_rate,
+    ROUND(SUM(purchased) * 100.0 / NULLIF(SUM(carted), 0), 2) AS cart_to_purchase_rate
+
 FROM funnel;
 
 
 
--- Conversion Rates
+-- =========================================================
+-- ⏱️ Sequential Funnel Analysis (Time-Based)
+-- =========================================================
 
 WITH user_events AS (
     SELECT 
@@ -39,29 +53,30 @@ SELECT
     COUNT(view_time) AS viewed_users,
 
     COUNT(CASE 
-        WHEN cart_time IS NOT NULL 
-        AND cart_time > view_time THEN 1 
+        WHEN cart_time IS NOT NULL AND cart_time > view_time THEN 1 
     END) AS cart_users,
 
     COUNT(CASE 
-        WHEN purchase_time IS NOT NULL 
-        AND purchase_time > cart_time THEN 1 
+        WHEN purchase_time IS NOT NULL AND purchase_time > cart_time THEN 1 
     END) AS purchase_users,
 
     ROUND(
-        COUNT(CASE WHEN cart_time > view_time THEN 1 END) * 100.0 / COUNT(view_time), 2
+        COUNT(CASE WHEN cart_time > view_time THEN 1 END) * 100.0 
+        / NULLIF(COUNT(view_time), 0), 2
     ) AS view_to_cart_rate,
 
     ROUND(
-        COUNT(CASE WHEN purchase_time > cart_time THEN 1 END) * 100.0 / 
-        COUNT(CASE WHEN cart_time > view_time THEN 1 END), 2
+        COUNT(CASE WHEN purchase_time > cart_time THEN 1 END) * 100.0 
+        / NULLIF(COUNT(CASE WHEN cart_time > view_time THEN 1 END), 0), 2
     ) AS cart_to_purchase_rate
 
 FROM user_events;
 
 
 
--- User Segmentation
+-- =========================================================
+-- 👥 User Activity Segmentation
+-- =========================================================
 
 WITH user_activity AS (
     SELECT 
@@ -81,14 +96,17 @@ SELECT
     
     COUNT(*) AS users,
     SUM(purchased) AS buyers,
-    ROUND(SUM(purchased)*100.0 / COUNT(*), 2) AS conversion_rate
+    ROUND(SUM(purchased) * 100.0 / COUNT(*), 2) AS conversion_rate
 
 FROM user_activity
-GROUP BY activity_segment;
+GROUP BY activity_segment
+ORDER BY conversion_rate DESC;
 
 
 
--- Revenue Concentration (Pareto Analysis)
+-- =========================================================
+-- 💰 Revenue Concentration (Pareto Analysis)
+-- =========================================================
 
 WITH customer_revenue AS (
     SELECT 
@@ -116,12 +134,14 @@ ORDER BY revenue_bucket;
 
 
 
--- Cohort Analysis (Retention)
+-- =========================================================
+-- 📆 Cohort Analysis (Monthly Retention)
+-- =========================================================
 
 WITH cohort AS (
     SELECT 
         customer_id,
-        MIN(DATE_FORMAT(order_date, '%Y-%m-01')) AS cohort_month
+        DATE_FORMAT(MIN(order_date), '%Y-%m-01') AS cohort_month
     FROM orders
     GROUP BY customer_id
 ),
@@ -139,6 +159,6 @@ SELECT
     COUNT(DISTINCT a.customer_id) AS active_users
 FROM cohort c
 JOIN activity a 
-ON c.customer_id = a.customer_id
-GROUP BY 1,2
-ORDER BY 1,2;
+    ON c.customer_id = a.customer_id
+GROUP BY c.cohort_month, a.order_month
+ORDER BY c.cohort_month, a.order_month;
